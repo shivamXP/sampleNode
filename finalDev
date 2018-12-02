@@ -1,0 +1,67 @@
+---
+
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Final project IT610 system administration'
+
+Parameters:
+  KeyName:
+    Description: 'Name of an existing EC2 KeyPair to enable SSH access to the instance'
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: 'must be the name of an existing EC2 KeyPair.'
+  InstanceType:
+    Description: 'WebServer EC2 instance type'
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+    - t2.micro
+    ConstraintDescription: 'must be a valid EC2 instance type.'
+  VpcId:
+    Description: 'specify the vpc id in which to deploy'
+    Type: String
+    Default: vpc-0ce40c76
+
+Resources:
+
+ EC2Instance:
+  Type: AWS::EC2::Instance
+  Properties:
+    InstanceType:
+      Ref: InstanceType
+    KeyName:
+      Ref: KeyName
+    ImageId: 'ami-009d6802948d06e52'
+    SecurityGroupIds:
+      - !Ref InstanceSecurityGroup
+    UserData:
+      Fn::Base64: |
+       #!/bin/bash
+        yum update -y
+        curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -
+        sudo yum install nodejs -y
+
+        yum install libcurl openssl
+        curl https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-amazon2-4.0.4.tgz >> mongosetup.tgz
+        tar -zxvf mongosetup.tgz
+        export PATH=/mongodb-linux-x86_64-amazon2-4.0.4/bin:$PATH
+        npm install mongodb --save
+        yum install git -y
+        git clone https://github.com/shivamXP/sampleNode.git
+        node /sampleNode/http_server.js
+
+
+
+ InstanceSecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: Enable SSH access via port 22 and allow Port 80
+    VpcId: !Ref VpcId
+    SecurityGroupIngress:
+    - IpProtocol: tcp
+      FromPort: '22'
+      ToPort: '22'
+      CidrIp: '0.0.0.0/0'
+    - IpProtocol: tcp
+      FromPort: '3000'
+      ToPort: '3000'
+      CidrIp: '0.0.0.0/0'
